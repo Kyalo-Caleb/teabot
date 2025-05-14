@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "teabotworking"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "teabotworking-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]

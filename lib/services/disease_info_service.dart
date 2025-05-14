@@ -58,19 +58,14 @@ class DiseaseInfoService {
     debugPrint('Question: $question');
 
     try {
-      // Normalize disease name by trimming whitespace, converting to lowercase, and handling both formats
-      final normalizedDisease = disease.trim().toLowerCase();
-      final alternativeDisease = normalizedDisease.contains('-') 
-          ? normalizedDisease.replaceAll('-', ' ')
-          : normalizedDisease.replaceAll(' ', '-');
-      
+      // Normalize disease name by converting to lowercase and replacing hyphens with spaces
+      final normalizedDisease = disease.toLowerCase().replaceAll('-', ' ');
       debugPrint('Normalized disease name: $normalizedDisease');
-      debugPrint('Alternative disease name: $alternativeDisease');
       
-      final diseaseData = _diseaseInfo[normalizedDisease] ?? _diseaseInfo[alternativeDisease];
+      // Get disease data
+      final diseaseData = _diseaseInfo[normalizedDisease];
       if (diseaseData == null) {
-        debugPrint('Available diseases: ${_diseaseInfo.keys.join(", ")}');
-        throw Exception('Disease information not found for: $normalizedDisease');
+        throw Exception('Disease information not found');
       }
 
       String? answer;

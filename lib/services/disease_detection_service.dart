@@ -179,7 +179,7 @@ class DiseaseDetectionService implements DiseaseDetectionInterface {
       
       // Load model from assets
       final modelFile = await _getModel();
-      _interpreter = await tflite.Interpreter.fromFile(modelFile, options: interpreterOptions);
+      _interpreter = tflite.Interpreter.fromFile(modelFile, options: interpreterOptions);
       
       debugPrint('Model loaded successfully');
     } catch (e) {

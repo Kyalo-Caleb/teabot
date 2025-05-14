@@ -26,7 +26,7 @@ void setupFirebaseCoreMockPlatform() {
   // Mock platform interface setup would go here
   // This is a simplified version for our tests
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(MethodChannel('plugins.flutter.io/firebase_core'),
+      .setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/firebase_core'),
           (MethodCall methodCall) async {
     switch (methodCall.method) {
       case 'Firebase#initializeCore':

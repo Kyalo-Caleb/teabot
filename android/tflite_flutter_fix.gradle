@@ -1,0 +1,17 @@
+def tfliteFlutterGradlePath = new File(System.getProperty('user.home'), 'AppData/Local/Pub/Cache/hosted/pub.dev/tflite_flutter-0.9.5/android/build.gradle')
+if (tfliteFlutterGradlePath.exists()) {
+    def tfliteFlutterGradleContent = tfliteFlutterGradlePath.text
+    if (!tfliteFlutterGradleContent.contains('namespace')) {
+        def updatedContent = tfliteFlutterGradleContent.replace(
+            'android {',
+            '''android {
+    namespace = "com.tfliteflutter.tflite_flutter"'''
+        )
+        tfliteFlutterGradlePath.text = updatedContent
+        println "Added namespace to tflite_flutter build.gradle"
+    } else {
+        println "Namespace already exists in tflite_flutter build.gradle"
+    }
+} else {
+    println "Could not find tflite_flutter build.gradle at: ${tfliteFlutterGradlePath}"
+} 

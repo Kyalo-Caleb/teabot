@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
-import 'package:teabot/services/chat_service.dart';
 import 'package:teabot/services/disease_detection_factory.dart';
 import 'package:teabot/services/disease_detection_interface.dart';
 import 'package:teabot/services/disease_info_service.dart';
@@ -514,6 +513,8 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         imageFile: imageFile,
       );
 
+      debugPrint('Disease detection result: $result');
+      
       setState(() {
         _currentDisease = result['disease'];
         _confidence = result['confidence'];
@@ -521,14 +522,26 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
       });
 
       // Add detection result message
-      _messages.add(ChatMessage(
+      final detectionMessage = ChatMessage(
         text: 'Disease detected: $_currentDisease (${(_confidence! * 100).toStringAsFixed(1)}% confidence)',
         isUser: false,
         timestamp: DateTime.now(),
-      ));
+        disease: _currentDisease,
+      );
 
-      // Add default questions
-      _addDefaultQuestions();
+      setState(() {
+        _messages.add(detectionMessage);
+      });
+      await _chatSyncService.saveMessage(detectionMessage);
+
+      // Ensure currentDisease is set before adding questions
+      if (_currentDisease != null) {
+        debugPrint('Adding default questions for disease: $_currentDisease');
+        await Future.delayed(const Duration(milliseconds: 500)); // Small delay for better UX
+        _addDefaultQuestions();
+      } else {
+        debugPrint('Error: Disease is null after detection');
+      }
       
       setState(() {});
       debugPrint('=== Image Processing Completed ===\n');
@@ -545,7 +558,13 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
   void _addDefaultQuestions() {
     debugPrint('\n=== Adding Default Questions ===');
     debugPrint('Timestamp: ${DateTime.now().toIso8601String()}');
+    debugPrint('Current Disease: $_currentDisease');
     
+    if (_currentDisease == null) {
+      debugPrint('Error: Current disease is null');
+      return;
+    }
+
     final questions = [
       QuestionCategory(
         title: 'About the Disease',
@@ -573,10 +592,14 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
       ),
     ];
 
+    debugPrint('Created ${questions.length} question categories');
     _addCategoryMessages(questions);
   }
 
   Future<void> _addCategoryMessages(List<QuestionCategory> categories) async {
+    debugPrint('\n=== Adding Category Messages ===');
+    debugPrint('Number of categories: ${categories.length}');
+
     final introMessage = ChatMessage(
       text: 'Here are some questions you can ask about $_currentDisease:',
       isUser: false,
@@ -584,12 +607,14 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
       disease: _currentDisease,
     );
 
+    debugPrint('Adding intro message');
     setState(() {
       _messages.add(introMessage);
     });
     await _chatSyncService.saveMessage(introMessage);
 
     for (final category in categories) {
+      debugPrint('\nProcessing category: ${category.title}');
       final categoryMessage = ChatMessage(
         text: category.title,
         isUser: false,
@@ -602,6 +627,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
       });
       await _chatSyncService.saveMessage(categoryMessage);
 
+      debugPrint('Adding ${category.questions.length} questions for category ${category.title}');
       for (final question in category.questions) {
         final questionMessage = ChatMessage(
           text: question,
@@ -617,6 +643,10 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         await _chatSyncService.saveMessage(questionMessage);
       }
     }
+    debugPrint('=== Finished Adding Category Messages ===\n');
+    
+    // Ensure messages are visible by scrolling to bottom
+    _scrollToBottom();
   }
 
   void _showError(String message) {
@@ -791,74 +821,92 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
               ),
             ),
           Flexible(
-            child: GestureDetector(
-              onTap: message.isQuestion ? () => _handleSubmitted(message.text) : null,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                decoration: BoxDecoration(
-                  color: message.isQuestion 
-                      ? Colors.blue[50] 
-                      : message.isUser 
-                          ? Colors.green[100] 
-                          : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(20),
-                  border: message.isQuestion
-                      ? Border.all(color: Colors.blue[300]!, width: 1)
-                      : null,
-                ),
-                child: Column(
-                  crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                  children: [
-                    if (message.hasImage && message.imageFile != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.file(
-                          message.imageFile!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: message.isQuestion ? () => _handleSubmitted(message.text) : null,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  decoration: BoxDecoration(
+                    color: message.isQuestion 
+                        ? Colors.lightBlue[50] 
+                        : message.isUser 
+                            ? Colors.green[100] 
+                            : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(20),
+                    border: message.isQuestion
+                        ? Border.all(color: Colors.lightBlue[300]!, width: 1)
+                        : null,
+                    boxShadow: message.isQuestion ? [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                    if (message.hasImage && message.imageUrl != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          message.imageUrl!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    if (message.text.isNotEmpty)
-                      Text(
-                        message.text,
-                        style: TextStyle(
-                          color: message.isQuestion ? Colors.blue[700] : Colors.black87,
-                          fontWeight: message.isQuestion ? FontWeight.w500 : null,
-                          fontSize: 16,
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatTimestamp(message.timestamp),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (message.isQuestion)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          'Tap to ask',
-                          style: TextStyle(
-                            color: Colors.blue[400],
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
+                    ] : null,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                    children: [
+                      if (message.hasImage && message.imageFile != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            message.imageFile!,
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
                           ),
                         ),
+                      if (message.hasImage && message.imageUrl != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            message.imageUrl!,
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      if (message.text.isNotEmpty)
+                        Text(
+                          message.text,
+                          style: TextStyle(
+                            color: message.isQuestion ? Colors.blue[700] : Colors.black87,
+                            fontWeight: message.isQuestion ? FontWeight.w500 : null,
+                            fontSize: 16,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatTimestamp(message.timestamp),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
                       ),
-                  ],
+                      if (message.isQuestion)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.touch_app, size: 14, color: Colors.blue[400]),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Tap to ask',
+                                style: TextStyle(
+                                  color: Colors.blue[400],
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
