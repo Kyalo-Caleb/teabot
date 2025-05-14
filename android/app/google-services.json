@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "444841214901",
+    "project_id": "teabotflutter",
+    "storage_bucket": "teabotflutter.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444841214901:android:ec399369c8b77a449f8ffc",
+        "android_client_info": {
+          "package_name": "com.example.teabot"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcFZDX4BIh25CjcDiZT8_y57FH9Ex3yzM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444841214901:android:91d65eaece4f27679f8ffc",
+        "android_client_info": {
+          "package_name": "com.example.teabotflutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcFZDX4BIh25CjcDiZT8_y57FH9Ex3yzM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444841214901:android:2ef31c7c2114e4029f8ffc",
+        "android_client_info": {
+          "package_name": "com.example.vetconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcFZDX4BIh25CjcDiZT8_y57FH9Ex3yzM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
