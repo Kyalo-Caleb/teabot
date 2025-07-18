@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:teabot/pages/disease_detection_page.dart';
+import 'package:teabot/pages/analytics_page.dart';
 
 class HomePage extends StatefulWidget {
   final String? userName;
@@ -118,9 +118,38 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Disease Outbreak Analysis Section
+                    // Quick Actions Section
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            'Analytics Dashboard',
+                            'View disease trends and statistics',
+                            Icons.analytics,
+                            Colors.blue,
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AnalyticsPage()),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            'Scan Leaf',
+                            'Detect diseases instantly',
+                            Icons.camera_alt,
+                            Colors.green,
+                            () => _showImageUploadOptions(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    
+                    // Disease Overview Section
                     const Text(
-                      'Disease Outbreak Analysis',
+                      'Disease Overview',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -128,157 +157,37 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Regional Statistics',
+                      'Common tea leaf diseases to watch for',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // Line Chart
-                    Container(
-                      height: 200,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            spreadRadius: 1,
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: LineChart(
-                        LineChartData(
-                          gridData: const FlGridData(show: false),
-                          titlesData: FlTitlesData(
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 40,
-                                getTitlesWidget: (value, meta) {
-                                  return Text(
-                                    value.toInt().toString(),
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-                                  if (value.toInt() >= 0 && value.toInt() < months.length) {
-                                    return Text(
-                                      months[value.toInt()],
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
-                                      ),
-                                    );
-                                  }
-                                  return const Text('');
-                                },
-                              ),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                          ),
-                          borderData: FlBorderData(show: true),
-                          minX: 0,
-                          maxX: 5,
-                          minY: 0,
-                          maxY: 100,
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: [
-                                const FlSpot(0, 30),
-                                const FlSpot(1, 45),
-                                const FlSpot(2, 35),
-                                const FlSpot(3, 60),
-                                const FlSpot(4, 40),
-                                const FlSpot(5, 50),
-                              ],
-                              isCurved: true,
-                              color: Colors.green,
-                              barWidth: 3,
-                              isStrokeCapRound: true,
-                              dotData: const FlDotData(show: true),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                color: Colors.green.withOpacity(0.1),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    
+                    // Disease Info Cards
+                    _buildDiseaseInfoCard(
+                      'Algal Leaf Spot',
+                      'Circular, raised spots with velvety texture',
+                      Colors.orange,
+                      Icons.circle,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDiseaseInfoCard(
+                      'Brown Blight',
+                      'Brown, sunken lesions with dark borders',
+                      Colors.red,
+                      Icons.warning,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDiseaseInfoCard(
+                      'Grey Blight',
+                      'Grey spots with concentric ring patterns',
+                      Colors.grey,
+                      Icons.blur_circular,
                     ),
                     const SizedBox(height: 20),
-                    // Pie Chart for Disease Distribution
-                    Container(
-                      height: 200,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            spreadRadius: 1,
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: PieChart(
-                        PieChartData(
-                          sections: [
-                            PieChartSectionData(
-                              value: 40,
-                              title: '40%',
-                              radius: 80,
-                              color: Colors.red,
-                              titleStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            PieChartSectionData(
-                              value: 30,
-                              title: '30%',
-                              radius: 80,
-                              color: Colors.orange,
-                              titleStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            PieChartSectionData(
-                              value: 30,
-                              title: '30%',
-                              radius: 80,
-                              color: Colors.yellow,
-                              titleStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
+                    
                     // Recent Searches Section
                     const Text(
                       'Recent Searches',
@@ -339,6 +248,109 @@ class _HomePageState extends State<HomePage> {
         },
         backgroundColor: Colors.green[800],
         child: const Icon(Icons.chat, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCard(String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiseaseInfoCard(String title, String description, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.left(color: color, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

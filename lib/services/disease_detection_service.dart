@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'disease_detection_interface.dart';
+import 'analytics_service.dart';
 
 // TensorFlow Lite types
 const int float32 = 1;
@@ -100,6 +101,9 @@ class DiseaseDetectionService implements DiseaseDetectionInterface {
       debugPrint('- Confidence: ${(bestDetection['confidence'] * 100).toStringAsFixed(1)}%');
       debugPrint('- Bbox: ${bestDetection['bbox']}');
 
+      // Submit to analytics (fire and forget)
+      _submitToAnalytics(bestDetection, imageFile);
+
       debugPrint('=== Disease Detection Service Completed ===\n');
       return bestDetection;
     } catch (e) {
@@ -107,6 +111,25 @@ class DiseaseDetectionService implements DiseaseDetectionInterface {
       debugPrint('=== Disease Detection Service Failed ===\n');
       throw Exception('Error detecting disease: $e');
     }
+  }
+
+  static void _submitToAnalytics(Map<String, dynamic> detection, File? imageFile) {
+    // Submit analytics data in background without blocking the UI
+    Future(() async {
+      try {
+        // You could upload the image to get a URL, or use a placeholder
+        String imageUrl = 'placeholder_url';
+        
+        await AnalyticsService.submitDiseaseReport(
+          disease: detection['disease'],
+          confidence: detection['confidence'],
+          imageUrl: imageUrl,
+          // Add location data if available
+        );
+      } catch (e) {
+        debugPrint('Failed to submit analytics: $e');
+      }
+    });
   }
 
   static List<Map<String, dynamic>> processYoloOutput(Float32List output, List<int> outputShape) {
