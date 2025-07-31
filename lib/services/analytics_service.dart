@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/disease_report.dart';
 import '../models/analytics_data.dart';
+import 'regional_analysis_service.dart';
 
 class AnalyticsService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -15,31 +17,66 @@ class AnalyticsService {
     String? location,
     double? latitude,
     double? longitude,
+    String cropType = 'tea',
+    double affectedArea = 0.0,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Get user's region from profile or use default
+    // Get location if not provided
+    double finalLatitude = latitude ?? 0.0;
+    double finalLongitude = longitude ?? 0.0;
+    String finalLocation = location ?? 'Unknown';
+
+    try {
+      if (latitude == null || longitude == null) {
+        // Try to get current location
+        try {
+          final position = await Geolocator.getCurrentPosition();
+          finalLatitude = position.latitude;
+          finalLongitude = position.longitude;
+        } catch (e) {
+          print('Could not get current location: $e');
+          // Use user's saved location from profile
+          final userDoc = await _firestore.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            finalLocation = userData['location'] ?? finalLocation;
+          }
+        }
+      }
+
+      // Submit to regional analysis service
+      await RegionalAnalysisService.submitFarmerReport(
+        disease: disease,
+        confidence: confidence,
+        imageUrl: imageUrl,
+        farmLocation: finalLocation,
+        latitude: finalLatitude,
+        longitude: finalLongitude,
+        cropType: cropType,
+        affectedArea: affectedArea,
+      );
+    } catch (e) {
+      print('Error submitting to regional analysis: $e');
+    }
+
+    // Get user's region from coordinates or profile
     String region = 'Unknown';
     String country = 'Unknown';
     
     try {
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (userDoc.exists) {
-        final userData = userDoc.data()!;
-        location = userData['location'] ?? location;
-        // You could implement a location service to get region/country from coordinates
-        // For now, we'll extract from location string or use defaults
-        if (location != null) {
-          final locationParts = location.split(',');
-          if (locationParts.length >= 2) {
-            region = locationParts[locationParts.length - 2].trim();
-            country = locationParts.last.trim();
-          }
+      // You could implement a reverse geocoding service here
+      // For now, extract from location string or use defaults
+      if (finalLocation.isNotEmpty && finalLocation != 'Unknown') {
+        final locationParts = finalLocation.split(',');
+        if (locationParts.length >= 2) {
+          region = locationParts[locationParts.length - 2].trim();
+          country = locationParts.last.trim();
         }
       }
     } catch (e) {
-      debugPrint('Error getting user location: $e');
+      print('Error processing location: $e');
     }
 
     final report = DiseaseReport(
@@ -48,9 +85,9 @@ class AnalyticsService {
       disease: disease,
       confidence: confidence,
       detectedAt: DateTime.now(),
-      location: location,
-      latitude: latitude,
-      longitude: longitude,
+      location: finalLocation,
+      latitude: finalLatitude,
+      longitude: finalLongitude,
       imageUrl: imageUrl,
       region: region,
       country: country,
