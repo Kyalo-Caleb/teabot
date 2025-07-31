@@ -5,6 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:teabot/pages/disease_detection_page.dart';
 import 'package:teabot/pages/analytics_page.dart';
+import 'package:teabot/pages/regional_dashboard_page.dart';
+import 'package:teabot/services/regional_analysis_service.dart';
+import 'package:teabot/models/regional_analysis.dart';
 
 class HomePage extends StatefulWidget {
   final String? userName;
@@ -21,11 +24,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String? _profileImageUrl;
   String? _displayName;
+  RegionalAnalysis? _localRegionalAnalysis;
+  List<OutbreakAlert> _localAlerts = [];
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _loadLocalRegionalData();
   }
 
   Future<void> _loadUserProfile() async {
@@ -45,6 +51,23 @@ class _HomePageState extends State<HomePage> {
           _profileImageUrl = userData.data()?['profileImage'];
         });
       }
+    }
+  }
+
+  Future<void> _loadLocalRegionalData() async {
+    try {
+      final localAnalysis = await RegionalAnalysisService.getLocalRegionalAnalysis();
+      final alerts = await RegionalAnalysisService.getOutbreakAlerts(
+        regionId: localAnalysis?.regionId,
+        activeOnly: true,
+      );
+      
+      setState(() {
+        _localRegionalAnalysis = localAnalysis;
+        _localAlerts = alerts;
+      });
+    } catch (e) {
+      print('Error loading local regional data: $e');
     }
   }
 
@@ -123,13 +146,13 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Expanded(
                           child: _buildQuickActionCard(
-                            'Analytics Dashboard',
-                            'View disease trends and statistics',
-                            Icons.analytics,
+                            'Regional Analysis',
+                            'View outbreak patterns in your area',
+                            Icons.map,
                             Colors.blue,
                             () => Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const AnalyticsPage()),
+                              MaterialPageRoute(builder: (context) => const RegionalDashboardPage()),
                             ),
                           ),
                         ),
@@ -146,6 +169,18 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                     const SizedBox(height: 30),
+                    
+                    // Local Regional Status
+                    if (_localRegionalAnalysis != null) ...[
+                      _buildLocalRegionalStatus(),
+                      const SizedBox(height: 30),
+                    ],
+                    
+                    // Active Alerts
+                    if (_localAlerts.isNotEmpty) ...[
+                      _buildActiveAlerts(),
+                      const SizedBox(height: 30),
+                    ],
                     
                     // Disease Overview Section
                     const Text(
@@ -248,6 +283,181 @@ class _HomePageState extends State<HomePage> {
         },
         backgroundColor: Colors.green[800],
         child: const Icon(Icons.chat, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildLocalRegionalStatus() {
+    if (_localRegionalAnalysis == null) return const SizedBox();
+    
+    final analysis = _localRegionalAnalysis!;
+    final riskColor = _getRiskColor(analysis.riskLevel);
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Your Region Status',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: riskColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _getRiskLabel(analysis.riskLevel),
+                  style: TextStyle(
+                    color: riskColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            analysis.regionName,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatusItem('Active Farmers', analysis.activeFarmers.toString()),
+              ),
+              Expanded(
+                child: _buildStatusItem('Disease Types', analysis.diseaseOutbreaks.length.toString()),
+              ),
+              Expanded(
+                child: _buildStatusItem('Risk Level', '${(analysis.riskLevel * 100).toInt()}%'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveAlerts() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.left(color: Colors.red, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red[600], size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Active Outbreak Alerts',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ..._localAlerts.take(2).map((alert) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _getSeverityColor(alert.severity),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${alert.disease} outbreak detected',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                Text(
+                  alert.severity.toString().split('.').last.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: _getSeverityColor(alert.severity),
+                  ),
+                ),
+              ],
+            ),
+          )),
+          if (_localAlerts.length > 2) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RegionalDashboardPage()),
+              ),
+              child: Text('View all ${_localAlerts.length} alerts'),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -501,4 +711,29 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-} 
+
+  Color _getRiskColor(double riskLevel) {
+    if (riskLevel >= 0.7) return Colors.red;
+    if (riskLevel >= 0.4) return Colors.orange;
+    return Colors.green;
+  }
+
+  String _getRiskLabel(double riskLevel) {
+    if (riskLevel >= 0.7) return 'High Risk';
+    if (riskLevel >= 0.4) return 'Medium Risk';
+    return 'Low Risk';
+  }
+
+  Color _getSeverityColor(OutbreakSeverity severity) {
+    switch (severity) {
+      case OutbreakSeverity.critical:
+        return Colors.red[800]!;
+      case OutbreakSeverity.high:
+        return Colors.red[600]!;
+      case OutbreakSeverity.moderate:
+        return Colors.orange[600]!;
+      case OutbreakSeverity.low:
+        return Colors.green[600]!;
+    }
+  }
+}

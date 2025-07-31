@@ -5,6 +5,7 @@ import 'package:teabot/pages/splash_screen.dart';
 import 'package:teabot/pages/home_page.dart';
 import 'package:teabot/pages/chat_page.dart';
 import 'package:teabot/pages/profile_settings_page.dart';
+import 'package:teabot/pages/regional_dashboard_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -153,6 +154,7 @@ class MainApp extends StatelessWidget {
         ),
         '/profile': (context) => const ProfileSettingsPage(),
         '/chat': (context) => const ChatPage(),
+        '/regional': (context) => const RegionalDashboardPage(),
       },
       onGenerateRoute: (settings) {
         debugPrint('\n=== Route Generation ===');
@@ -178,6 +180,8 @@ class MainApp extends StatelessWidget {
                 return const ProfileSettingsPage();
               case '/chat':
                 return const ChatPage();
+              case '/regional':
+                return const RegionalDashboardPage();
               default:
                 return const SplashScreen();
             }
